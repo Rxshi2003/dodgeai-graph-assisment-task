@@ -1,48 +1,78 @@
 import { useState, useRef, useEffect } from 'react';
 import './App.css';
+import GraphVisualizer from './GraphVisualizer';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+// Render markdown-lite: bold (**text**) and newlines
+function renderMessage(text) {
+  return text.split('\n').map((line, i) => {
+    const parts = line.split(/\*\*(.+?)\*\*/g);
+    return (
+      <span key={i}>
+        {parts.map((part, j) =>
+          j % 2 === 1 ? <strong key={j}>{part}</strong> : part
+        )}
+        {i < text.split('\n').length - 1 && <br />}
+      </span>
+    );
+  });
+}
 
 function App() {
   const [messages, setMessages] = useState([
-    { id: 1, text: "Hello! Try saying 'hi' to see me respond from the backend.", isUser: false }
+    { id: 1, text: 'Hello! Ask me anything about your customers, orders, deliveries, invoices or payments.', isUser: false }
   ]);
   const [inputValue, setInputValue] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [chartData, setChartData] = useState(null);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
+  // Pre-load graph on mount
+  useEffect(() => {
+    const loadGraph = async () => {
+      try {
+        const res = await fetch(`${API_URL}/graph`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.nodes && data.nodes.length > 0) {
+            setChartData(data);
+          }
+        }
+      } catch (e) {
+        console.warn('Could not pre-load graph:', e.message);
+      }
+    };
+    loadGraph();
+  }, []);
+
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim() || isLoading) return;
 
-    const newUserMessage = {
-      id: Date.now(),
-      text: inputValue.trim(),
-      isUser: true
-    };
-
-    setMessages([...messages, newUserMessage]);
+    const userText = inputValue.trim();
+    const newUserMessage = { id: Date.now(), text: userText, isUser: true };
+    setMessages(prev => [...prev, newUserMessage]);
     setInputValue('');
+    setIsLoading(true);
 
-    // Call the backend API
     try {
-      const response = await fetch('http://localhost:3001/query', {
+      const response = await fetch(`${API_URL}/query`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ query: inputValue.trim() }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: userText }),
       });
 
       let data = {};
-      try {
-        data = await response.json();
-      } catch(e) {
+      try { data = await response.json(); } catch (e) {
         data = { error: 'Invalid JSON response from server' };
       }
 
@@ -52,31 +82,48 @@ function App() {
 
       const botMessage = {
         id: Date.now() + 1,
-        text: data.answer || "Success! But no answer was provided.",
-        sql: data.generatedSql,
+        text: data.answer || 'Query executed. See the results below.',
+        sql: data.query,
         isUser: false
       };
-      setMessages((prev) => [...prev, botMessage]);
+      setMessages(prev => [...prev, botMessage]);
+
+      if (data.result) {
+        if (Array.isArray(data.result)) {
+          setChartData(data.result.length > 0 ? data.result : null);
+        } else if (data.result.nodes) {
+          setChartData(data.result);
+        } else {
+          setChartData(null);
+        }
+      }
     } catch (error) {
-      console.error("Error communicating with backend:", error);
-      const errorMessage = {
+      console.error('Error communicating with backend:', error);
+      setMessages(prev => [...prev, {
         id: Date.now() + 1,
-        text: `Error connecting to backend: ${error.message}`,
+        text: error.message || 'An unexpected error occurred.',
         isUser: false
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      }]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <div className="app-container">
-      {/* Graph Section Placeholder */}
+      {/* Graph Section */}
       <div className="graph-section">
-        <div className="graph-placeholder">
-          <div className="placeholder-icon">📊</div>
-          <h2>Graph Visualization</h2>
-          <p>Graph content will be rendered here...</p>
-        </div>
+        {chartData ? (
+          <div style={{ width: '100%', height: '100%', display: 'flex' }}>
+            <GraphVisualizer data={chartData} />
+          </div>
+        ) : (
+          <div className="graph-placeholder">
+            <div className="placeholder-icon">📊</div>
+            <h2>Graph Visualization</h2>
+            <p>Send a query to explore entity relationships.</p>
+          </div>
+        )}
       </div>
 
       {/* Chat Section */}
@@ -85,23 +132,37 @@ function App() {
           <div className="header-status"></div>
           <h2>AI Assistant</h2>
         </div>
-        
+
         <div className="chat-messages">
           {messages.map((msg) => (
             <div key={msg.id} className={`message-wrapper ${msg.isUser ? 'user' : 'bot'}`}>
               {!msg.isUser && <div className="bot-avatar">AI</div>}
-              <div className="message-content" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+              <div className="message-content">
                 <div className="message-bubble">
-                  {msg.text}
+                  {renderMessage(msg.text)}
                 </div>
-                {msg.sql && (
-                  <div className="sql-preview" style={{ fontSize: '0.8rem', opacity: 0.7, background: 'rgba(0,0,0,0.1)', padding: '4px 8px', borderRadius: '4px' }}>
-                    <code><b>SQL:</b> {msg.sql}</code>
+                {msg.sql && msg.sql !== 'In-Context Graph Traversal' && (
+                  <div className="sql-preview">
+                    <code><b>Mode:</b> {msg.sql}</code>
                   </div>
                 )}
               </div>
             </div>
           ))}
+
+          {isLoading && (
+            <div className="message-wrapper bot">
+              <div className="bot-avatar">AI</div>
+              <div className="message-content">
+                <div className="message-bubble loading-bubble">
+                  <span className="dot"></span>
+                  <span className="dot"></span>
+                  <span className="dot"></span>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div ref={messagesEndRef} />
         </div>
 
@@ -109,12 +170,13 @@ function App() {
           <input
             type="text"
             className="chat-input"
-            placeholder="Type your message..."
+            placeholder="Ask about customers, orders, invoices..."
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
+            disabled={isLoading}
           />
-          <button type="submit" className="send-button" disabled={!inputValue.trim()}>
-            Send
+          <button type="submit" className="send-button" disabled={!inputValue.trim() || isLoading}>
+            {isLoading ? '...' : 'Send'}
           </button>
         </form>
       </div>
