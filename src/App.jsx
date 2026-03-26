@@ -26,6 +26,7 @@ function App() {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [chartData, setChartData] = useState(null);
+  const [focusNodeId, setFocusNodeId] = useState(null);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -97,6 +98,8 @@ function App() {
           setChartData(null);
         }
       }
+      // Highlight the queried node in the graph if one was identified
+      setFocusNodeId(data.focusNodeId || null);
     } catch (error) {
       console.error('Error communicating with backend:', error);
       setMessages(prev => [...prev, {
@@ -115,7 +118,7 @@ function App() {
       <div className="graph-section">
         {chartData ? (
           <div style={{ width: '100%', height: '100%', display: 'flex' }}>
-            <GraphVisualizer data={chartData} />
+            <GraphVisualizer data={chartData} focusNodeId={focusNodeId} />
           </div>
         ) : (
           <div className="graph-placeholder">
