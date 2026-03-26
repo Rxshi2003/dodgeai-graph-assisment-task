@@ -1,16 +1,110 @@
-# React + Vite
+# 🚀 DodgeAI Graph System — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## 📌 Overview
 
-Currently, two official plugins are available:
+This is the frontend application of the DodgeAI Graph-Based Query System. It provides an interactive chat interface where users can input natural language queries, which are processed by the backend using an LLM and graph-based database system.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+🔗 **Backend Repository:**
+https://github.com/Rxshi2003/dodgeai-graph-assisment-task-backend
 
-## React Compiler
+---
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 🏗️ Architecture Decisions
 
-## Expanding the ESLint configuration
+### 1. Component-Based Design
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+* Built using **React.js**
+* Modular structure:
+
+  * Chat UI
+  * Message components
+  * API service layer
+
+### 2. Separation of Concerns
+
+* UI handles only:
+
+  * User input
+  * Displaying responses
+* Business logic handled entirely in backend
+
+### 3. API Communication
+
+* REST API used for communication
+* Axios/Fetch used to send queries to backend
+
+### 4. Deployment Strategy
+
+* Hosted on **Vercel**
+* Environment variables used for backend URL
+
+---
+
+## 🧠 LLM Interaction Flow (Frontend Perspective)
+
+1. User enters query in chat UI
+2. Query is sent to backend API (`/query`)
+3. Backend processes using LLM + database
+4. Response displayed dynamically
+
+---
+
+## 🛡️ Guardrails (Frontend Level)
+
+* Input validation (prevent empty queries)
+* Basic sanitization before sending requests
+* Error handling:
+
+  * API failures
+  * Timeout handling
+* Loading states for better UX
+
+---
+
+## ⚙️ Setup Instructions
+
+```bash
+git clone https://github.com/Rxshi2003/dodgeai-graph-assisment-task.git
+cd dodgeai-graph-assisment-task
+npm install
+npm start
+```
+
+---
+
+## 🌐 Environment Variables
+
+Create `.env` file:
+
+```env
+VITE_BACKEND_URL=https://your-backend-url
+```
+
+---
+
+## 🚀 Deployment
+
+* Push code to GitHub
+* Connect repo to Vercel
+* Add environment variable
+* Deploy
+
+---
+
+## 📌 Key Features
+
+* Chat-based interface
+* Real-time query responses
+* Clean and responsive UI
+* Backend-integrated intelligent querying
+
+---
+
+## 📷 Future Improvements
+
+* Chat history persistence
+* Streaming responses
+* Authentication system
+* UI enhancements
+
+---
